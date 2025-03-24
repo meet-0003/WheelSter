@@ -3,13 +3,13 @@ const mongoose = require("mongoose");
 const payment = new mongoose.Schema({
     booking: { 
         type: mongoose.Schema.Types.ObjectId, 
-        ref: "Booking", 
-        // required: true
+        ref: "booking", 
+        required: true
     },
     user: { 
         type: mongoose.Schema.Types.ObjectId, 
-        ref: "User", 
-        // required: true 
+        ref: "user", 
+        required: true 
     },
     amount: { 
         type: Number, 
@@ -18,13 +18,17 @@ const payment = new mongoose.Schema({
     method: { 
         type: String, 
         required: true, 
-        enum: ["Card", "cod", "Wallet"] 
+        enum: ["Card", "COD", "Wallet"] 
     },
     status: { 
         type: String, 
         default: "Pending", 
         enum: ["Pending", "Completed", "Failed"] 
     },
+    transactionId: {
+        type: String, 
+        default: null
+    }
 }, { timestamps: true });
 
 module.exports = mongoose.model("Payment", payment);

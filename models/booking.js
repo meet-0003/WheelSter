@@ -3,27 +3,35 @@ const status = require('statuses');
 
 const booking = new mongoose.Schema({
     user: {
-        type : mongoose.Types.ObjectId,
+        type: mongoose.Types.ObjectId,
         ref: "user",
     },
     vehicle: {
-        type : mongoose.Types.ObjectId,
+        type: mongoose.Types.ObjectId,
         ref: "vehicle",
     },
     driver: {
         type: mongoose.Types.ObjectId,
-        ref: "user", 
-      },
-    address: { 
+        ref: "user",
+    },
+    address: {
         type: String,
         required: true
     },
+    startDate: { 
+        type: Date, 
+        // required: true 
+    },
+    endDate: { 
+        type: Date, 
+        // required: true
+     },
     pickupTime: {
         type: Date,
-        required: true
+        // required: true
     },
-    totalAmount: { 
-        type: Number, 
+    totalAmount: {
+        type: Number,
     },
     duration: {
         type: Number,
@@ -35,27 +43,34 @@ const booking = new mongoose.Schema({
     },
     licenseNumber: {
         type: String,
-        required: function () { return !this.withDriver; } 
+        required: function () { return !this.withDriver; }
     },
-    status:{
-        type : String,
-        default: "Pending",
-        enum: ["Pending", "Confirmed", "Completed", "Cancelled","Accepted"]
-    },
-    paymentStatus: { 
+    driverStatus: { 
         type: String, 
-        default: "Pending", 
+        default: "pending" ,
+        enum: ["pending", "accepted", "declined"]
+    },
+
+    status: {
+        type: String,
+        default: "Pending",
+        enum: ["Pending", "Confirmed", "Completed", "Cancelled", "Accepted"]
+    },
+    paymentStatus: {
+        type: String,
+        default: "Pending",
         enum: ["Pending", "Paid", "Failed"]
     },
-    paymentId: { 
-        type: String, 
-        default: null 
+    paymentId: {
+        type: String,
+        default: null
     },
-    createdAt: { type: Date, 
-        default: Date.now 
+    createdAt: {
+        type: Date,
+        default: Date.now
     },
 },
-{ timeseries: true }
+    { timeseries: true }
 );
 
 module.exports = mongoose.model("booking", booking);

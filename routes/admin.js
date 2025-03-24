@@ -165,7 +165,10 @@ router.put('/update-vehicle', authenticateToken, authorizeRole(["driver", "admin
           return res.status(403).json({ message: "Unauthorized! You can only update your own vehicle." });
       }
 
-      await VehicleModel.findByIdAndUpdate(vehicleid, req.body, { new: true });
+      await VehicleModel.findByIdAndUpdate(vehicleid, {
+        ...req.body,
+        availability: req.body.availability === "true",
+    }, { new: true });
 
       return res.status(200).json({ message: "Vehicle updated successfully!" });
   } catch (error) {

@@ -104,4 +104,25 @@ router.get('/get-vehicle-by-id/:id', async (req, res) => {
     }
 });
 
+
+router.get("/vehicle-availability/:vehicleId", async (req, res) => {
+    const { vehicleId } = req.params;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Normalize to start of the day
+
+    try {
+        const bookings = await Booking.find({
+            vehicle: vehicleId,
+            startDate: { $lte: today }, // Booking started on or before today
+            endDate: { $gte: today },   // Booking is still active today
+        });
+
+        const isBooked = bookings.length > 0;
+        res.json({ isBooked });
+    } catch (error) {
+        console.error("Error checking vehicle availability:", error);
+        res.status(500).json({ message: "Error fetching availability" });
+    }
+});
+
 module.exports = router;
