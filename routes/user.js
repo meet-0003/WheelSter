@@ -151,6 +151,7 @@ router.get("/get-user-information", authenticateToken, async (req, res) => {
         // Find user and include driverInfo explicitly
         const user = await User.findById(req.user.id)
             .select("-password") // Exclude password field
+            .sort({ createdAt: -1 })
             .lean(); // Convert to a plain JavaScript object
 
         if (!user) {
@@ -250,7 +251,39 @@ router.post("/forgot-password", async (req, res) => {
     }
 });
 
-// Reset Password
+// Reset Password (Using OTP)
+router.post("/reset-password", async (req, res) => {
+    try {
+        const { email, otp, newPassword } = req.body;
+
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            return res.status(400).json({ message: "User not found." });
+        }
+
+        if (!user.resetOTP || user.otpExpires < Date.now()) {
+            return res.status(400).json({ message: "Invalid or expired OTP." });
+        }
+
+        if (user.resetOTP !== otp) {
+            return res.status(400).json({ message: "Incorrect OTP." });
+        }
+
+        // Hash the new password
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        user.password = hashedPassword;
+        user.resetOTP = null;
+        user.otpExpires = null;
+        await user.save();
+
+        res.status(200).json({ message: "Password reset successful." });
+    } catch (error) {
+        console.error("Error resetting password:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+});
+
 const updateUserRoleToDriver = async (req, res) => {
   try {
     const { userId, driverInfo } = req.body;
@@ -334,7 +367,7 @@ router.get("/driver-info/:userId", authenticateToken,authorizeRole(["driver"]), 
     try {
         const { userId } = req.params;
 
-        const driver = await User.findById(userId).select("role username email phnumber avatar driverInfo ");
+        const driver = await User.findById(userId).select("role username email phnumber avatar driverInfo ").sort({ createdAt: -1 });
 
         if (!driver) {
             return res.status(404).json({ message: "Driver not found" });
@@ -366,8 +399,6 @@ router.get('/drivers', authenticateToken, authorizeRole(["admin"]), async (req, 
     }
 });
 
-
-
 router.get("/driver/:driverId", async (req, res) => {
     try {
       const driver = req.params.driverId;
@@ -375,22 +406,35 @@ router.get("/driver/:driverId", async (req, res) => {
       const bookings = await Booking.find()
         .populate({
           path: "vehicle",
-          select: "name addedBy", // Change from ownerId to addedBy
+          select: "name addedBy", 
         })
         .populate({
           path: "user",
           select: "username",
         })
+        .populate({
+            path: "driver",
+            select: "id",
+          })
+        .select("startDate endDate pickupTime address status paymentStatus driverStatus") 
+        .sort({ createdAt: -1 })
         .lean();
   
       // Ensure vehicle has an addedBy before filtering
       const driverBookings = bookings
-        .filter((booking) => booking.vehicle.addedBy?.toString() === driver) // Fix this line
-        .map((booking) => ({
+      .filter((booking) => booking?.vehicle?.addedBy?.toString() === driver)
+      .map((booking) => ({
           _id: booking._id,
-          username: booking.user.username,
-          vehicleName: booking.vehicle.name,
-          bookingDetails: `From ${booking.startDate} to ${booking.endDate}`,
+          username: booking.user?.username || "Unknown",
+          vehicleName: booking.vehicle?.name || "Unknown",
+          startDate: booking.startDate,
+          endDate: booking.endDate,
+          pickupTime: booking.pickupTime,
+          address: booking.address,
+          status: booking.status,
+          paymentStatus: booking.paymentStatus,
+          withDriver: true,
+          driverStatus: booking.driverStatus || "pending", // Ensure this is included
         }));
   
       res.json(driverBookings);
@@ -400,7 +444,70 @@ router.get("/driver/:driverId", async (req, res) => {
     }
   });
   
-  
+  // accept or reject the booking
+  router.put("/bookings/:bookingId", authenticateToken, authorizeRole(["driver"]), async (req, res) => {
+    try {
+        const { action } = req.body; // 'accept' or 'reject'
+        const driverId = req.user.id;
+        const { bookingId } = req.params;
+
+        const booking = await Booking.findById(bookingId);
+        if (!booking) return res.status(404).json({ message: "Booking not found" });
+
+        if (booking.driver.toString() !== driverId) {
+            return res.status(403).json({ message: "Unauthorized action" });
+        }
+
+        if (action === "accept" || action === "accepted") {
+            booking.driverStatus = "accepted";
+        } else if (action === "reject" || action === "rejected") {
+            booking.driverStatus = "declined";
+        } else {
+            return res.status(400).json({ message: "Invalid action" });
+        }
+        
+
+        await booking.save();
+        res.json({ message: `Booking ${action}ed successfully` });
+
+    } catch (error) {
+        console.error("Error updating booking:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+});
+
+router.put("/reassign-driver/:bookingId", authenticateToken, authorizeRole(["admin"]), async (req, res) => {
+    try {
+        const { newDriverId } = req.body;
+        const adminId = req.user.id;
+        const { bookingId } = req.params;
+
+        const booking = await Booking.findById(bookingId);
+        if (!booking) return res.status(404).json({ message: "Booking not found" });
+
+        if (booking.driverStatus !== "declined" && booking.driverStatus !== "pending") {
+            return res.status(400).json({ message: "Cannot reassign driver unless the previous driver declined or has not responded." });
+        }
+        
+
+        // Track reassignment history
+        booking.reassignedDrivers.push({
+            driver: booking.driver,
+            reassignedBy: adminId
+        });
+
+        // Assign new driver
+        booking.driver = newDriverId;
+        booking.driverStatus = "pending";
+
+        await booking.save();
+        res.json({ message: "Driver reassigned successfully" });
+
+    } catch (error) {
+        console.error("Error reassigning driver:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+});
 
 
 

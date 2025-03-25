@@ -14,6 +14,11 @@ const booking = new mongoose.Schema({
         type: mongoose.Types.ObjectId,
         ref: "user",
     },
+    reassignedDrivers: [{
+        driver: { type: mongoose.Types.ObjectId, ref: "user" },
+        reassignedBy: { type: mongoose.Types.ObjectId, ref: "user" }, // Admin who reassigned
+        reassignedAt: { type: Date, default: Date.now }
+    }],
     address: {
         type: String,
         required: true

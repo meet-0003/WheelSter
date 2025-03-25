@@ -9,10 +9,7 @@ const nodemailer = require("nodemailer");
 const cron = require("node-cron");
 
 //Create a new booking done
-router.post(
-  "/create-booking",
-  authenticateToken,
-  authorizeRole(["user", "driver"]),
+router.post("/create-booking",authenticateToken,authorizeRole(["user", "driver"]),
   async (req, res) => {
     try {
       let {
@@ -380,20 +377,24 @@ cron.schedule("*/1 * * * *", async () => {
 
 router.get("/bookings/:vehicleId", async (req, res) => {
   const { vehicleId } = req.params;
+  console.log("Fetching bookings for vehicleId:", vehicleId);
+
   try {
+    // Check if vehicle exists first
     const vehicle = await Vehicle.findById(vehicleId);
-    const bookings = await Booking.find({ vehicle: vehicleId }).select(
-      "startDate endDate"
-    );
-    if (!bookings.length) {
-      return res
-        .status(404)
-        .json({ message: "No bookings found for this vehicle" });
+    if (!vehicle) {
+      return res.status(404).json({ message: "Vehicle not found" });
     }
+
+    // Fetch bookings
+    const bookings = await Booking.find({ vehicle: vehicleId }).select("startDate endDate");
+
     res.json({ bookings, vehicle });
   } catch (error) {
+    console.error("Error fetching bookings:", error);
     res.status(500).json({ message: "Error fetching booked dates" });
   }
 });
+
 
 module.exports = router;

@@ -113,7 +113,7 @@ const sendApprovalEmail = async (email, vehicleName, status, reason = "") => {
  router.get("/get-user-vehicles", authenticateToken, async (req, res) => {
   try {
       let filter = req.user.role === "admin" ? {} : { addedBy: req.user.id };
-      const vehicles = await Vehicle.find(filter);
+      const vehicles = await Vehicle.find(filter).sort({ createdAt: -1 });
       res.status(200).json({ data: vehicles });
   } catch (error) {
       res.status(500).json({ message: "Internal Server Error!", error: error.message });
@@ -238,7 +238,7 @@ router.get("/company-data", authenticateToken, authorizeRole(["admin"]), async (
 //Get all users done
 router.get("/users", authenticateToken,  authorizeRole(["admin"]), async (req, res) => {
   try {
-      const users = await User.find({}, "-password");
+      const users = await User.find({}, "-password").sort({ createdAt: -1 });
       res.status(200).json({ users });
   } catch (error) {
       res.status(500).json({ message: "Internal server error" });
@@ -248,7 +248,7 @@ router.get("/users", authenticateToken,  authorizeRole(["admin"]), async (req, r
 //Get a single user by ID done
 router.get("/users/:userId", authenticateToken, authorizeRole(["admin","driver"]), async (req, res) => {
   try {
-      const user = await User.findById(req.params.userId, "-password");
+      const user = await User.findById(req.params.userId, "-password").sort({ createdAt: -1 });
       if (!user) {
           return res.status(404).json({ message: "User not found" });
       }
@@ -289,7 +289,8 @@ router.get("/bookings", authenticateToken, async (req, res) => {
       const bookings = await Booking.find(query)
           .populate("user", "username email")
           .populate("vehicle", "name")
-          .select("status pickupTime duration totalAmount createdAt");
+          .select("status pickupTime duration totalAmount createdAt")
+          .sort({ createdAt: -1 });
 
       res.status(200).json({ status: "Success", bookings });
   } catch (error) {

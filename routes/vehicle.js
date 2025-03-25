@@ -12,7 +12,7 @@ router.get('/get-all-vehicle', async (req, res) => {
 
     try {
 
-        const vehicles = await Vehicle.find().sort({createdAt: -1});
+        const vehicles = await Vehicle.find({status:"Approved"}).sort({createdAt: -1});
 
 
         const updatedVehicles = await Promise.all(
@@ -44,26 +44,7 @@ router.get('/get-all-vehicle', async (req, res) => {
     }
 });
 
-//Get Recently added vehicles 
-router.get('/get-recent-vehicle', async (req, res) => {
-    try {
-        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-        const vehicles = await Vehicle.find().sort({ createdAt: -1 }).limit(4);
-
-        const updatedVehicles = vehicles.map(vehicle => {
-            return {
-                ...vehicle._doc,
-                recentlyAdded: vehicle.createdAt > sevenDaysAgo,
-            };
-        });
-
-        return res.json({ status: "Success", data: updatedVehicles });
-
-    } catch (error) {
-        res.status(500).json({ message: "Internal server error!!!" });
-    }
-});
 //vehicle details done
 router.get('/get-vehicle-by-id/:id', async (req, res) => {
 
