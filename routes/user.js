@@ -4,7 +4,7 @@ const Booking = require("../models/booking");
 const Feedback = require("../models/feedback");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const {authenticateToken,authorizeRole} = require("./userAuth");
+const { authenticateToken, authorizeRole } = require("./userAuth");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
@@ -21,7 +21,7 @@ if (!fs.existsSync(uploadDir)) {
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, "uploads/"); 
+        cb(null, "uploads/");
     },
     filename: (req, file, cb) => {
         cb(null, Date.now() + path.extname(file.originalname));
@@ -60,51 +60,51 @@ router.post("/upload-profile-photo", authenticateToken, upload.single("avatar"),
 // sign up done
 router.post('/sign-up', upload.single("avatar"), async (req, res) => {
     try {
-        
-        const {username, email, password, phnumber} = req.body;
-        
+
+        const { username, email, password, phnumber } = req.body;
+
         if (!username || !email || !password || !phnumber) {
             return res.status(400).json({ message: "All fields are required." });
         }
-        
+
         if (username.length < 4) {
             return res
-            .status(400).json({ message: "Username should be grater than 3 characters" });
+                .status(400).json({ message: "Username should be grater than 3 characters" });
         }
-        
+
         const existingUsername = await User.findOne({ username: username });
         if (existingUsername) {
             return res
-            .status(400).json({ message: "Username already exists" });
+                .status(400).json({ message: "Username already exists" });
         }
-        
+
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
             return res.status(400).json({ message: "Invalid email format." });
         }
-        
+
         const existingEmail = await User.findOne({ email });
         if (existingEmail) {
             return res.status(400).json({ message: "Email already exists." });
         }
-        
+
         if (password.length < 6) {
             return res.status(400).json({ message: "Password should be grater than 5 characters" });
         }
-        
+
         const phoneRegex = /^\d{10,15}$/;
         if (!phoneRegex.test(phnumber)) {
             return res.status(400).json({ message: "Invalid phone number format." });
         }
-        
+
         const hashPass = await bcrypt.hash(password, 10);
         const avatar = `/uploads/${req.file.filename}`;
-        
-        const newUser = new User({username: username, email: email, password: hashPass, phnumber: phnumber,avatar:avatar});
+
+        const newUser = new User({ username: username, email: email, password: hashPass, phnumber: phnumber, avatar: avatar });
         await newUser.save();
-        
+
         return res.status(200).json({ message: "SignUp successfully" });
-        
+
     } catch (error) {
         console.log(error);
         res.status(500).json({ message: "Internal srever error!" });
@@ -114,36 +114,36 @@ router.post('/sign-up', upload.single("avatar"), async (req, res) => {
 // sign in done
 router.post('/sign-in', async (req, res) => {
     try {
-        const { username, password} = req.body;
-        
+        const { username, password } = req.body;
+
         const existingUser = await User.findOne({ username });
         if (!existingUser) {
             return res
-           .status(400).json({message: "Invalid credentials"} );
+                .status(400).json({ message: "Invalid credentials" });
         }
 
-        await bcrypt.compare(password, existingUser.password, (err,data) => {
-            if(data){
+        await bcrypt.compare(password, existingUser.password, (err, data) => {
+            if (data) {
                 const token = jwt.sign(
                     {
-                        id: existingUser._id, 
+                        id: existingUser._id,
                         username: existingUser.username,
                         role: existingUser.role
                     },
                     "vehiclerent123",
                     { expiresIn: "30d" }
                 );
-                res.status(200).json({id : existingUser._id, token: token,role: existingUser.role,avatar: existingUser.avatar});
+                res.status(200).json({ id: existingUser._id, token: token, role: existingUser.role, avatar: existingUser.avatar });
             }
-            else{
+            else {
                 res
-               .status(400).json({message: "Invalid credentials"} );
+                    .status(400).json({ message: "Invalid credentials" });
             }
         });
     } catch (error) {
         console.log(error);
-        res.status(500).json({message:"Internal srever error!!!"});
-    } 
+        res.status(500).json({ message: "Internal srever error!!!" });
+    }
 });
 
 router.get("/get-user-information", authenticateToken, async (req, res) => {
@@ -173,22 +173,22 @@ router.get("/get-user-information", authenticateToken, async (req, res) => {
 // update user info 
 router.put("/update-profile", authenticateToken, upload.single("avatar"), async (req, res) => {
     try {
-        const userData = JSON.parse(req.body.data); 
+        const userData = JSON.parse(req.body.data);
 
         const { username, email, phnumber, address, licenseNumber, experience, ability, age, gender, dob, licenseExpiry } = userData;
 
-        const updates = { 
-            username, 
-            email, 
-            phnumber, 
-            "driverInfo.address": address, 
-            "driverInfo.licenseNumber": licenseNumber, 
-            "driverInfo.experience": experience, 
-            "driverInfo.ability": ability, 
-            "driverInfo.age": age, 
-            "driverInfo.gender": gender, 
-            "driverInfo.dob": dob, 
-            "driverInfo.licenseExpiry": licenseExpiry 
+        const updates = {
+            username,
+            email,
+            phnumber,
+            "driverInfo.address": address,
+            "driverInfo.licenseNumber": licenseNumber,
+            "driverInfo.experience": experience,
+            "driverInfo.ability": ability,
+            "driverInfo.age": age,
+            "driverInfo.gender": gender,
+            "driverInfo.dob": dob,
+            "driverInfo.licenseExpiry": licenseExpiry
         };
 
         if (req.file) {
@@ -220,13 +220,13 @@ router.post("/forgot-password", async (req, res) => {
             return res.status(400).json({ message: "User not found." });
         }
 
-        const otp = otpGenerator.generate(6, { 
-            digits: true, 
-            lowerCaseAlphabets: false, 
-            upperCaseAlphabets: false, 
-            specialChars: false 
-        });       
-        
+        const otp = otpGenerator.generate(6, {
+            digits: true,
+            lowerCaseAlphabets: false,
+            upperCaseAlphabets: false,
+            specialChars: false
+        });
+
         user.resetOTP = otp;
         user.otpExpires = Date.now() + 3 * 60 * 1000;
         await user.save();
@@ -235,8 +235,10 @@ router.post("/forgot-password", async (req, res) => {
             host: process.env.SMTP_HOST,
             port: process.env.SMTP_PORT,
             service: process.env.SMTP_SERVICE,
-            auth: { user: process.env.SMTP_EMAIL,
-                pass: process.env.SMTP_PASSWORD },
+            auth: {
+                user: process.env.SMTP_EMAIL,
+                pass: process.env.SMTP_PASSWORD
+            },
         });
 
         await transporter.sendMail({
@@ -285,32 +287,32 @@ router.post("/reset-password", async (req, res) => {
 });
 
 const updateUserRoleToDriver = async (req, res) => {
-  try {
-    const { userId, driverInfo } = req.body;
+    try {
+        const { userId, driverInfo } = req.body;
 
-    if (!driverInfo) {
-      return res.status(400).json({ message: "Driver info is required" });
+        if (!driverInfo) {
+            return res.status(400).json({ message: "Driver info is required" });
+        }
+
+        let user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        user.driverInfo = driverInfo;
+        user.role = "driver";
+        await user.save(); // ✅ Ensure user is saved
+
+        res.status(200).json({ message: "User updated to driver successfully", user });
+    } catch (error) {
+        console.error("Update Error:", error);
+        res.status(500).json({ message: error.message });
     }
-
-    let user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    user.driverInfo = driverInfo;
-    user.role = "driver";
-    await user.save(); // ✅ Ensure user is saved
-
-    res.status(200).json({ message: "User updated to driver successfully", user});
-  } catch (error) {
-    console.error("Update Error:", error);
-    res.status(500).json({ message: error.message });
-  }
 };
 
 router.put("/update-to-driver", authenticateToken, async (req, res) => {
     console.log("🔵 Received request to update user to driver:", req.body);
-    console.log("🔹 Authenticated User:", req.user); 
+    console.log("🔹 Authenticated User:", req.user);
 
 
     try {
@@ -336,8 +338,8 @@ router.put("/update-to-driver", authenticateToken, async (req, res) => {
         }
 
 
-           // ✅ Generate new token after role update
-           const token = jwt.sign(
+        // ✅ Generate new token after role update
+        const token = jwt.sign(
             { id: updatedUser._id, username: updatedUser.username, role: updatedUser.role },
             "vehiclerent123",
             { expiresIn: "30d" }
@@ -345,10 +347,10 @@ router.put("/update-to-driver", authenticateToken, async (req, res) => {
         console.log("✅ Token generated:", token);
         console.log("🚀 Sending API Response:", { user: updatedUser, token });
 
-        res.status(200).json({ 
-            message: "User updated to driver successfully", 
-            user: updatedUser, 
-            token 
+        res.status(200).json({
+            message: "User updated to driver successfully",
+            user: updatedUser,
+            token
         });
         console.log("✅ Token generated:", token);
     } catch (error) {
@@ -361,13 +363,40 @@ router.put("/update-to-driver", authenticateToken, async (req, res) => {
     }
 });
 
-
 // Fetch driver information
-router.get("/driver-info/:userId", authenticateToken,authorizeRole(["driver"]), async (req, res) => {
+// router.get("/driver-info/:userId", authenticateToken, async (req, res) => {
+//     try {
+//         const { userId } = req.params;
+
+//         const driver = await User.findById(userId).select("role username email phnumber avatar driverInfo ").sort({ createdAt: -1 });
+
+//         if (!driver) {
+//             return res.status(404).json({ message: "Driver not found" });
+//         }
+
+//         if (driver.role !== "driver") {
+//             return res.status(400).json({ message: "User is not a driver" });
+//         }
+//         if (!driver.driverInfo) {
+//             driver.driverInfo = {}; // Ensure it's always defined
+//         }
+
+//         const { userDetails, ...driverInfo } = driver.toObject();
+
+//         res.status(200).json({ userDetails, driverInfo });
+//     } catch (error) {
+//         console.log(error)
+//         res.status(500).json({ message: "Internal server error", error });
+//     }
+// });
+
+router.get("/driver-info/:userId", authenticateToken, async (req, res) => {
     try {
         const { userId } = req.params;
 
-        const driver = await User.findById(userId).select("role username email phnumber avatar driverInfo ").sort({ createdAt: -1 });
+        const driver = await User.findById(userId)
+            .select("role username email phnumber avatar driverInfo address")
+            .sort({ createdAt: -1 });
 
         if (!driver) {
             return res.status(404).json({ message: "Driver not found" });
@@ -376,141 +405,58 @@ router.get("/driver-info/:userId", authenticateToken,authorizeRole(["driver"]), 
         if (driver.role !== "driver") {
             return res.status(400).json({ message: "User is not a driver" });
         }
-        if (!driver.driverInfo) {
-            driver.driverInfo = {}; // Ensure it's always defined
-          }
 
-        const {userDetails, ...driverInfo } = driver.toObject();
+        const fullDriver = {
+            ...driver.toObject(),
+            ...driver.driverInfo, // flatten driverInfo into main object
+        };
 
-        res.status(200).json({  userDetails,driverInfo });
+        res.status(200).json({ driverInfo: fullDriver });
     } catch (error) {
-        console.log(error)
+        console.log(error);
         res.status(500).json({ message: "Internal server error", error });
     }
 });
 
-router.get('/drivers', authenticateToken, authorizeRole(["admin"]), async (req, res) => {
-    try {
-        const drivers = await User.find({ role: "driver" }).select("_id username");
-        res.json({ drivers });
-    } catch (error) {
-        console.error("Error fetching drivers:", error);
-        res.status(500).json({ message: "Server error" });
-    }
-});
 
 router.get("/driver/:driverId", async (req, res) => {
     try {
-      const driver = req.params.driverId;
-  
-      const bookings = await Booking.find()
-        .populate({
-          path: "vehicle",
-          select: "name addedBy", 
-        })
-        .populate({
-          path: "user",
-          select: "username",
-        })
-        .populate({
-            path: "driver",
-            select: "id",
-          })
-        .select("startDate endDate pickupTime address status paymentStatus driverStatus") 
-        .sort({ createdAt: -1 })
-        .lean();
-  
-      // Ensure vehicle has an addedBy before filtering
-      const driverBookings = bookings
-      .filter((booking) => booking?.vehicle?.addedBy?.toString() === driver)
-      .map((booking) => ({
-          _id: booking._id,
-          username: booking.user?.username || "Unknown",
-          vehicleName: booking.vehicle?.name || "Unknown",
-          startDate: booking.startDate,
-          endDate: booking.endDate,
-          pickupTime: booking.pickupTime,
-          address: booking.address,
-          status: booking.status,
-          paymentStatus: booking.paymentStatus,
-          withDriver: true,
-          driverStatus: booking.driverStatus || "pending", // Ensure this is included
+        const driverId = req.params.driverId;
+
+        const bookings = await Booking.find({ driver: driverId }) // Fetch based on assigned driver
+            .populate({
+                path: "vehicle",
+                select: "name addedBy",
+            })
+            .populate({
+                path: "user",
+                select: "username",
+            })
+            .select("startDate endDate pickupTime address status paymentStatus driverStatus")
+            .sort({ createdAt: -1 })
+            .lean();
+
+        const driverBookings = bookings.map((booking) => ({
+            _id: booking._id,
+            username: booking.user?.username || "Unknown",
+            vehicleName: booking.vehicle?.name || "Unknown",
+            startDate: booking.startDate,
+            endDate: booking.endDate,
+            pickupTime: booking.pickupTime,
+            address: booking.address,
+            status: booking.status,
+            paymentStatus: booking.paymentStatus,
+            withDriver: true,
+            driverStatus: booking.driverStatus || "pending",
         }));
-  
-      res.json(driverBookings);
+
+        res.json(driverBookings);
     } catch (error) {
-      console.error("Error fetching bookings:", error);
-      res.status(500).json({ message: "Error fetching bookings" });
-    }
-  });
-  
-  // accept or reject the booking
-  router.put("/bookings/:bookingId", authenticateToken, authorizeRole(["driver"]), async (req, res) => {
-    try {
-        const { action } = req.body; // 'accept' or 'reject'
-        const driverId = req.user.id;
-        const { bookingId } = req.params;
-
-        const booking = await Booking.findById(bookingId);
-        if (!booking) return res.status(404).json({ message: "Booking not found" });
-
-        if (booking.driver.toString() !== driverId) {
-            return res.status(403).json({ message: "Unauthorized action" });
-        }
-
-        if (action === "accept" || action === "accepted") {
-            booking.driverStatus = "accepted";
-        } else if (action === "reject" || action === "rejected") {
-            booking.driverStatus = "declined";
-        } else {
-            return res.status(400).json({ message: "Invalid action" });
-        }
-        
-
-        await booking.save();
-        res.json({ message: `Booking ${action}ed successfully` });
-
-    } catch (error) {
-        console.error("Error updating booking:", error);
-        res.status(500).json({ message: "Internal server error" });
-    }
-});
-
-router.put("/reassign-driver/:bookingId", authenticateToken, authorizeRole(["admin"]), async (req, res) => {
-    try {
-        const { newDriverId } = req.body;
-        const adminId = req.user.id;
-        const { bookingId } = req.params;
-
-        const booking = await Booking.findById(bookingId);
-        if (!booking) return res.status(404).json({ message: "Booking not found" });
-
-        if (booking.driverStatus !== "declined" && booking.driverStatus !== "pending") {
-            return res.status(400).json({ message: "Cannot reassign driver unless the previous driver declined or has not responded." });
-        }
-        
-
-        // Track reassignment history
-        booking.reassignedDrivers.push({
-            driver: booking.driver,
-            reassignedBy: adminId
-        });
-
-        // Assign new driver
-        booking.driver = newDriverId;
-        booking.driverStatus = "pending";
-
-        await booking.save();
-        res.json({ message: "Driver reassigned successfully" });
-
-    } catch (error) {
-        console.error("Error reassigning driver:", error);
-        res.status(500).json({ message: "Internal server error" });
+        console.error("Error fetching bookings:", error);
+        res.status(500).json({ message: "Error fetching bookings" });
     }
 });
 
 
-
-
-module.exports = {router,updateUserRoleToDriver};
+module.exports = { router, updateUserRoleToDriver };
 

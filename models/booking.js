@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const status = require('statuses');
+const { DriverStatus, BookingStatus, PaymentStatus } = require('../enum');
 
 const booking = new mongoose.Schema({
     user: {
@@ -23,14 +24,14 @@ const booking = new mongoose.Schema({
         type: String,
         required: true
     },
-    startDate: { 
-        type: Date, 
+    startDate: {
+        type: Date,
         // required: true 
     },
-    endDate: { 
-        type: Date, 
+    endDate: {
+        type: Date,
         // required: true
-     },
+    },
     pickupTime: {
         type: Date,
         // required: true
@@ -50,21 +51,20 @@ const booking = new mongoose.Schema({
         type: String,
         required: function () { return !this.withDriver; }
     },
-    driverStatus: { 
-        type: String, 
-        default: "pending" ,
-        enum: ["pending", "accepted", "declined"]
+    driverStatus: {
+        type: String,
+        default: DriverStatus.PENDING,
+        enum: DriverStatus
     },
-
     status: {
         type: String,
-        default: "Pending",
-        enum: ["Pending", "Confirmed", "Completed", "Cancelled", "Accepted"]
+        default: BookingStatus.PENDING,
+        enum: BookingStatus
     },
     paymentStatus: {
         type: String,
-        default: "Pending",
-        enum: ["Pending", "Paid", "Failed"]
+        default: PaymentStatus.PENDING,
+        enum: PaymentStatus
     },
     paymentId: {
         type: String,
@@ -77,5 +77,12 @@ const booking = new mongoose.Schema({
 },
     { timeseries: true }
 );
+
+// booking.pre("save", function (next) {
+//     if (this.status === "Cancelled") {
+//         this.driverStatus = "-";
+//     }
+//     next();
+// });
 
 module.exports = mongoose.model("booking", booking);

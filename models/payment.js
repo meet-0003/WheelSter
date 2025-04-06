@@ -23,11 +23,20 @@ const payment = new mongoose.Schema({
     status: { 
         type: String, 
         default: "Pending", 
-        enum: ["Pending", "Completed", "Failed"] 
+        enum: ["Pending", "Completed", "Failed", "Refunded"] 
     },
     transactionId: {
         type: String, 
         default: null
+    },
+    refundStatus: { 
+        type: String, 
+        default: "Not Initiated",
+        enum: ["Not Initiated", "Processing", "Refunded", "Failed"]
+    },
+    refundedAmount: {
+        type: Number,
+        default: 0
     }
 }, { timestamps: true });
 

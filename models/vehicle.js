@@ -9,7 +9,13 @@ const vehicle = new mongoose.Schema(
     rent: { type: String, required: true },
     registrationNumber: { type: String, required: true, unique: true },
     availability: { type: Boolean, default: false },
-    rating: { type: String, required: true },
+    ratings: [
+      {
+        user: { type: mongoose.Schema.Types.ObjectId, ref: "user" },
+        rating: { type: Number, required: true }
+      }
+    ],
+    averageRating: { type: Number, default: 0 }, 
     desc: { type: String, required: true },
     gear: { type: String, required: true },
     seat: { type: String, required: true },

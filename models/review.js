@@ -6,11 +6,11 @@ const review = new mongoose.Schema({
         ref: "user",
         // required: true
     },
-    vehicle: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Vehicle",
-        // required: true
-    },
+    // vehicle: {
+    //     type: mongoose.Schema.Types.ObjectId,
+    //     ref: "Vehicle",
+    //     // required: true
+    // },
     rating: {
         type: Number,
         // required: true,
@@ -19,7 +19,7 @@ const review = new mongoose.Schema({
     },
     comment: {
         type: String,
-        // required: true
+        required: true
     },
     createdAt: {
         type: Date,
